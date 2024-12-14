@@ -2,10 +2,8 @@ import { useState, useEffect, useContext } from 'react';
 import { Box, TextareaAutosize, Button, styled } from '@mui/material';
 
 import { DataContext } from '../../../context/DataProvider';
-
 import { API } from '../../../service/api';
 
-//components
 import Comment from './Comment';
 
 const Container = styled(Box)`
@@ -30,10 +28,10 @@ const initialValue = {
     postId: '',
     date: new Date(),
     comments: ''
-}
+};
 
 const Comments = ({ post }) => {
-    const url = 'https://static.thenounproject.com/png/12017-200.png'
+    const url = 'https://static.thenounproject.com/png/12017-200.png';
 
     const [comment, setComment] = useState(initialValue);
     const [comments, setComments] = useState([]);
@@ -42,30 +40,47 @@ const Comments = ({ post }) => {
     const { account } = useContext(DataContext);
 
     useEffect(() => {
+        if (!post) return;
+
         const getData = async () => {
-            const response = await API.getAllComments(post._id);
-            if (response.isSuccess) {
-                setComments(response.data);
+            try {
+                const response = await API.getAllComments(post._id);
+                if (response.isSuccess) {
+                    setComments(response.data);
+                }
+            } catch (error) {
+                console.error('Error fetching comments:', error);
             }
-        }
+        };
         getData();
     }, [toggle, post]);
 
     const handleChange = (e) => {
+        if (!account || !account.username) {
+            console.error('Account or username is undefined');
+            return;
+        }
+
         setComment({
             ...comment,
             name: account.username,
             postId: post._id,
             comments: e.target.value
         });
-    }
+    };
 
-    const addComment = async() => {
-        await API.newComment(comment);
-        setComment(initialValue)
-        setToggle(prev => !prev);
-    }
-    
+    const addComment = async () => {
+        try {
+            const response = await API.newComment(comment);
+            if (response.isSuccess) {
+                setComment(initialValue);
+                setToggle((prev) => !prev);
+            }
+        } catch (error) {
+            console.error('Error adding comment:', error);
+        }
+    };
+
     return (
         <Box>
             <Container>
@@ -82,17 +97,17 @@ const Comments = ({ post }) => {
                     size="medium" 
                     style={{ height: 40 }}
                     onClick={(e) => addComment(e)}
-                >Post</Button>             
+                >
+                    Post
+                </Button>             
             </Container>
             <Box>
-                {
-                    comments && comments.length > 0 && comments.map(comment => (
-                        <Comment comment={comment} setToggle={setToggle} />
-                    ))
-                }
+                {comments && comments.length > 0 && comments.map(comment => (
+                    <Comment key={comment._id} comment={comment} setToggle={setToggle} />
+                ))}
             </Box>
         </Box>
-    )
-}
+    );
+};
 
 export default Comments;

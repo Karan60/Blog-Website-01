@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-
 import { Box, styled, TextareaAutosize, Button, FormControl, InputBase } from '@mui/material';
 import { AddCircle as Add } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
-
 import { API } from '../../service/api';
 
 const Container = styled(Box)(({ theme }) => ({
@@ -48,29 +46,30 @@ const initialPost = {
     username: 'codeforinterview',
     categories: 'Tech',
     createdDate: new Date()
-}
+};
 
 const Update = () => {
     const navigate = useNavigate();
+    const { id } = useParams();
 
     const [post, setPost] = useState(initialPost);
     const [file, setFile] = useState('');
-    const [imageURL, setImageURL] = useState('');
-
-    const { id } = useParams();
-
+    
+    // Default image URL if no post picture exists
     const url = 'https://images.unsplash.com/photo-1543128639-4cb7e6eeef1b?ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8bGFwdG9wJTIwc2V0dXB8ZW58MHx8MHx8&ixlib=rb-1.2.1&w=1000&q=80';
     
+    // Fetch post data on component mount and update when ID changes
     useEffect(() => {
         const fetchData = async () => {
             let response = await API.getPostById(id);
             if (response.isSuccess) {
                 setPost(response.data);
             }
-        }
+        };
         fetchData();
-    }, []);
+    }, [id]); 
 
+    // Handle file upload whenever a file is selected
     useEffect(() => {
         const getImage = async () => { 
             if(file) {
@@ -80,27 +79,35 @@ const Update = () => {
                 
                 const response = await API.uploadFile(data);
                 if (response.isSuccess) {
-                    post.picture = response.data;
-                    setImageURL(response.data);    
+                    setPost(prevPost => ({
+                        ...prevPost,
+                        picture: response.data
+                    }));    
                 }
             }
-        }
+        };
         getImage();
-    }, [file])
+    }, [file]);
 
+    // Update the blog post
     const updateBlogPost = async () => {
-        await API.updatePost(post);
-        navigate(`/details/${id}`);
-    }
+        const response = await API.updatePost(post);
+        if (response.isSuccess) {
+            navigate(`/details/${id}`);
+        }
+    };
 
+    // Handle input changes
     const handleChange = (e) => {
         setPost({ ...post, [e.target.name]: e.target.value });
-    }
+    };
 
     return (
         <Container>
+            {/* Image Preview */}
             <Image src={post.picture || url} alt="post" />
 
+            {/* Form Controls */}
             <StyledFormControl>
                 <label htmlFor="fileInput">
                     <Add fontSize="large" color="action" />
@@ -111,19 +118,31 @@ const Update = () => {
                     style={{ display: "none" }}
                     onChange={(e) => setFile(e.target.files[0])}
                 />
-                <InputTextField onChange={(e) => handleChange(e)} value={post.title} name='title' placeholder="Title" />
-                <Button onClick={() => updateBlogPost()} variant="contained" color="primary">Update</Button>
+                <InputTextField
+                    onChange={(e) => handleChange(e)}
+                    value={post.title}
+                    name="title"
+                    placeholder="Title"
+                />
+                <Button
+                    onClick={updateBlogPost}
+                    variant="contained"
+                    color="primary"
+                >
+                    Update
+                </Button>
             </StyledFormControl>
 
+            {/* Text Area for Description */}
             <StyledTextArea
                 rowsMin={5}
                 placeholder="Tell your story..."
-                name='description'
-                onChange={(e) => handleChange(e)} 
+                name="description"
+                onChange={(e) => handleChange(e)}
                 value={post.description}
             />
         </Container>
-    )
-}
+    );
+};
 
 export default Update;
